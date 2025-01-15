@@ -13,7 +13,7 @@ class CompanyController extends Controller
      */
     public function index()
     {
-        $companies = Company::where('user_id', auth()->id())->get();
+        $companies = Company::get();
 
         return response()->json($companies, 200);
     }
@@ -25,7 +25,7 @@ class CompanyController extends Controller
     {
         $data = $request->validate([
             'razon_social' => 'required|string||max:255',
-            'ruc' => 'required|string',
+            'ruc' => ['required', 'string', 'regex:/^(10|20)\d{9}$/',],
             'direccion' => 'required|string|max:255',
             'logo' => 'nullable|file|image',
             'sol_user' => 'required|string|max:255',
@@ -74,7 +74,7 @@ class CompanyController extends Controller
 
         $data = $request->validate([
             'razon_social' => 'required|string||max:255',
-            'ruc' => 'required|string',
+            'ruc' => ['required', 'string', 'regex:/^(10|20)\d{9}$/',],
             'direccion' => 'required|string|max:255',
             'logo' => 'nullable|file|image',
             'sol_user' => 'required|string|max:255',
@@ -104,8 +104,16 @@ class CompanyController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Company $company)
+    public function destroy($company)
     {
-        //
+        $company = Company::where('ruc', $company)
+        ->where('user_id', auth()->id())
+        ->firstOrFail();
+
+        $company->delete();
+
+        return response()->json([
+            'message' => 'Empresa eliminada con exito',
+        ], 200);   
     }
 }
