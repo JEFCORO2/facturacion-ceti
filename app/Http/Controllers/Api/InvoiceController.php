@@ -23,13 +23,6 @@ class InvoiceController extends Controller
 
         $company = Company::where('user_id', auth()->id())->firstOrFail();
 
-        $certificate = Storage::get($company->cert_path);
-
-        $see = new See();
-        $see->setCertificate($certificate);
-        $see->setService(SunatEndpoints::FE_BETA);
-        $see->setClaveSOL($company->ruc, $company->sol_user, $company->sol_pass);
-
         // Cliente
         $client = (new Client())
         ->setTipoDoc('6')
