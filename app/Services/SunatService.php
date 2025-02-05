@@ -2,21 +2,22 @@
 
 namespace App\Services;
 
-use App\Models\Company as ModelsCompany;
 use DateTime;
+use Greenter\See;
+use Greenter\Report\PdfReport;
+use Greenter\Model\Sale\Legend;
+use Greenter\Report\HtmlReport;
+use Greenter\Model\Sale\Invoice;
 use Greenter\Model\Client\Client;
 use Greenter\Model\Company\Address;
 use Greenter\Model\Company\Company;
-use Greenter\Model\Sale\FormaPagos\FormaPagoContado;
-use Greenter\Model\Sale\Invoice;
-use Greenter\Model\Sale\Legend;
 use Greenter\Model\Sale\SaleDetail;
-use Greenter\Report\HtmlReport;
-use Greenter\Report\PdfReport;
-use Greenter\Report\Resolver\DefaultTemplateResolver;
-use Greenter\See;
-use Greenter\Ws\Services\SunatEndpoints;
 use Illuminate\Support\Facades\Storage;
+
+use App\Models\Company as ModelsCompany;
+use Greenter\Ws\Services\SunatEndpoints;
+use Greenter\Model\Sale\FormaPagos\FormaPagoContado;
+use Greenter\Report\Resolver\DefaultTemplateResolver;
 
 class SunatService{
     public function getSee($company) {
@@ -159,6 +160,17 @@ class SunatService{
 
     public function getHtmlReport($invoice){
         $report = new HtmlReport();
+
+        $resolver = new DefaultTemplateResolver();
+        $report->setTemplate($resolver->getTemplate($invoice));
+
+        $ruc = $invoice->getCompany()->getRuc();
+        $company = ModelsCompany::where('ruc', $ruc)->first();
+
+        $params = [
+            
+        ];
+
     }
 
 }
