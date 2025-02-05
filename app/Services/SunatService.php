@@ -77,5 +77,88 @@ class SunatService{
             ->setAddress($this->getAddress($company['address']) ?? null);
     }
 
-    
+    public function getClient($client){
+        return (new Client())
+            ->setTipoDoc($client['tipoDoc'] ?? null)
+            ->setNumDoc($client['numDoc'] ?? null)
+            ->setRznSocial($client['rznSocial'] ?? null);
+    }
+
+    public function getAddress($address){
+        return (new Address())
+            ->setUbigueo($address['ubigeo'] ?? null)
+            ->setDepartamento($address['departamento'] ?? null)
+            ->setProvincia($address['provincia'] ?? null)
+            ->setDistrito($address['distrito'] ?? null)
+            ->setUrbanizacion($address['urbanizacion'] ?? null)
+            ->setDireccion($address['direccion'] ?? null)
+            ->setCodLocal($address['codLocal'] ?? null); // Codigo de establecimiento asignado por SUNAT, 0000 por defecto.
+    }
+
+    public function getDetails($details){
+        $green_details = [];
+
+        foreach ($details as $detail) {        
+            $green_details[] = (new SaleDetail())
+                ->setCodProducto($detail['codProducto'] ?? null)
+                ->setUnidad($detail['unidad'] ?? null) // Unidad - Catalog. 03
+                ->setCantidad($detail['cantidad'] ?? null)
+                ->setMtoValorUnitario($detail['mtoValorUnitario'] ?? null)
+                ->setDescripcion($detail['descripcion'] ?? null)
+                ->setMtoBaseIgv($detail['mtoBaseIgv'] ?? null)
+                ->setPorcentajeIgv($detail['porcentajeIgv'] ?? null) // 18%
+                ->setIgv($detail['igv'] ?? null)
+                ->setFactorIcbper($detail['factorIcbper'] ?? null) // 0.3%
+                ->setIcbper($detail['icbper'] ?? null)
+                ->setTipAfeIgv($detail['tipAfeIgv'] ?? null) // Gravado Op. Onerosa - Catalog. 07
+                ->setTotalImpuestos($detail['totalImpuestos'] ?? null) // Suma de impuestos en el detalle
+                ->setMtoValorVenta($detail['mtoValorVenta'] ?? null)
+                ->setMtoPrecioUnitario($detail['mtoPrecioUnitario'] ?? null);
+        }
+        return $green_details;
+    }
+
+    public function getLegends($legends){
+        $green_legends = [];
+
+        foreach ($legends as $legend) {
+            $green_legends[] = (new Legend())
+                ->setCode($legend['code'] ?? null)
+                ->setValue($legend['value'] ?? null);
+        }
+        return $green_legends;
+    }
+
+    public function sunatResponse($result){
+        $response['success'] = $result->isSuccess();
+
+        // Verificamos que la conexión con SUNAT fue exitosa.
+        if (!$response['success']) {
+            // Mostrar error al conectarse a SUNAT.
+
+            $response['error'] = [
+                'code' => $result->getError()->getCode(),
+                'message' => $result->getError()->getMessage()
+            ];
+            
+            return $response;
+        }
+
+        $response['cdrZip'] = base64_encode($result->getCdrZip());
+
+        $cdr = $result->getCdrResponse();
+
+        $response['cdrResponse'] = [
+            'code' => (int)$cdr->getCode(),
+            'description' => $cdr->getDescription(),
+            'notes' => $cdr->getNotes()
+        ];
+
+        return $response;
+    }
+
+    public function getHtmlReport($invoice){
+        $report = new HtmlReport();
+    }
+
 }
