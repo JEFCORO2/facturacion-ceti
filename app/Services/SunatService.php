@@ -2,37 +2,38 @@
 
 namespace App\Services;
 
+use App\Models\Company as ModelsCompany;
 use DateTime;
-use Greenter\See;
-use Greenter\Report\PdfReport;
-use Greenter\Model\Sale\Legend;
-use Greenter\Report\HtmlReport;
-use Greenter\Model\Sale\Invoice;
 use Greenter\Model\Client\Client;
 use Greenter\Model\Company\Address;
 use Greenter\Model\Company\Company;
+use Greenter\Model\Sale\FormaPagos\FormaPagoContado;
+use Greenter\Model\Sale\Invoice;
+use Greenter\Model\Sale\Legend;
 use Greenter\Model\Sale\SaleDetail;
+use Greenter\Report\HtmlReport;
+use Greenter\Report\PdfReport;
+use Greenter\Report\Resolver\DefaultTemplateResolver;
+use Greenter\See;
+use Greenter\Ws\Services\SunatEndpoints;
 use Illuminate\Support\Facades\Storage;
 
-use App\Models\Company as ModelsCompany;
-use Greenter\Ws\Services\SunatEndpoints;
-use Greenter\Model\Sale\FormaPagos\FormaPagoContado;
-use Greenter\Report\Resolver\DefaultTemplateResolver;
-
-class SunatService{
-    public function getSee($company) {
-        $certificate = Storage::get($company->cert_path);
-
+class SunatService
+{
+    public function getSee($company)
+    {
         $see = new See();
-        $see->setCertificate($certificate);
-        $see->setService($company->production ? SunatEndpoints::FE_BETA : SunatEndpoints::FE_BETA);
+        $see->setCertificate(Storage::get($company->cert_path));
+        $see->setService($company->production ? SunatEndpoints::FE_PRODUCCION : SunatEndpoints::FE_BETA);
         $see->setClaveSOL($company->ruc, $company->sol_user, $company->sol_pass);
 
         return $see;
     }
 
-    public function getInvoice($data){
-        return (new Invoice)
+    public function getInvoice($data)
+    {
+
+        return (new Invoice())
             ->setUblVersion($data['ublVersion'] ?? '2.1')
             ->setTipoOperacion($data['tipoOperacion'] ?? null) // Venta - Catalog. 51
             ->setTipoDoc($data['tipoDoc'] ?? null) // Factura - Catalog. 01 
@@ -56,7 +57,7 @@ class SunatService{
             ->setMtoIGVGratuitas($data['mtoIGVGratuitas'])
             ->setIcbper($data['icbper'])
             ->setTotalImpuestos($data['totalImpuestos'])
-            
+
             //Totales
             ->setValorVenta($data['valorVenta'])
             ->setSubTotal($data['subTotal'])
@@ -70,33 +71,38 @@ class SunatService{
             ->setLegends($this->getLegends($data['legends']));
     }
 
-    public function getCompany($company){
-        return (new CompanyCompany())
+    public function getCompany($company)
+    {
+        return (new Company())
             ->setRuc($company['ruc'] ?? null)
             ->setRazonSocial($company['razonSocial'] ?? null)
             ->setNombreComercial($company['nombreComercial'] ?? null)
             ->setAddress($this->getAddress($company['address']) ?? null);
     }
 
-    public function getClient($client){
+    public function getClient($client)
+    {
         return (new Client())
-            ->setTipoDoc($client['tipoDoc'] ?? null)
+            ->setTipoDoc($client['tipoDoc'] ?? null) // DNI - Catalog. 06
             ->setNumDoc($client['numDoc'] ?? null)
             ->setRznSocial($client['rznSocial'] ?? null);
     }
 
-    public function getAddress($address){
+    public function getAddress($address)
+    {
         return (new Address())
-            ->setUbigueo($address['ubigeo'] ?? null)
+            ->setUbigueo($address['ubigueo'] ?? null)
             ->setDepartamento($address['departamento'] ?? null)
             ->setProvincia($address['provincia'] ?? null)
             ->setDistrito($address['distrito'] ?? null)
             ->setUrbanizacion($address['urbanizacion'] ?? null)
             ->setDireccion($address['direccion'] ?? null)
             ->setCodLocal($address['codLocal'] ?? null); // Codigo de establecimiento asignado por SUNAT, 0000 por defecto.
+
     }
 
-    public function getDetails($details){
+    public function getDetails($details)
+    {
         $green_details = [];
 
         foreach ($details as $detail) {        
@@ -119,29 +125,32 @@ class SunatService{
         return $green_details;
     }
 
-    public function getLegends($legends){
+    public function getLegends($legends)
+    {
         $green_legends = [];
 
         foreach ($legends as $legend) {
             $green_legends[] = (new Legend())
-                ->setCode($legend['code'] ?? null)
+                ->setCode($legend['code'] ?? null) // Monto en letras - Catalog. 52
                 ->setValue($legend['value'] ?? null);
         }
+
         return $green_legends;
     }
 
-    public function sunatResponse($result){
+    public function sunatResponse($result)
+    {
+
         $response['success'] = $result->isSuccess();
 
         // Verificamos que la conexión con SUNAT fue exitosa.
         if (!$response['success']) {
-            // Mostrar error al conectarse a SUNAT.
 
             $response['error'] = [
                 'code' => $result->getError()->getCode(),
                 'message' => $result->getError()->getMessage()
             ];
-            
+
             return $response;
         }
 
@@ -169,32 +178,62 @@ class SunatService{
 
         $params = [
             'system' => [
-                'logo' => Storage::get($company->logo_path),
-                'hash' => 'qqnr2dN4p/HmaEA/CJuVGo7dv5g', //valor resumen
+                'logo' => Storage::get($company->logo_path), // Logo de Empresa
+                'hash' => 'qqnr2dN4p/HmaEA/CJuVGo7dv5g=', // Valor Resumen 
             ],
-            
             'user' => [
-                'header' => 'Telf: <b>(01) 123375 </b>',
-                'extras' => [
-                    //Leyendas adicionales
-                    ['name' => 'CONDICION DE PAGO', 'value' => 'Efectivo'],
-                    ['name' => 'vendedor', 'value' => 'GITHUB SELLER'],
+                'header'     => 'Telf: <b>(01) 123375</b>', // Texto que se ubica debajo de la dirección de empresa
+                'extras'     => [
+                    // Leyendas adicionales
+                    ['name' => 'CONDICION DE PAGO', 'value' => 'Efectivo'     ],
+                    ['name' => 'VENDEDOR'         , 'value' => 'GITHUB SELLER'],
                 ],
-                'footer' => '<p>Nro Resolucion: <b>32322323</b></p>'
+                'footer' => '<p>Nro Resolucion: <b>3232323</b></p>'
             ]
         ];
 
         return $report->render($invoice, $params);
     }
 
-    public function generatedPdfReport($invoice) {
+    public function generatePdfReport($invoice)
+    {
         $htmlReport = new HtmlReport();
 
         $resolver = new DefaultTemplateResolver();
         $htmlReport->setTemplate($resolver->getTemplate($invoice));
-        
-        
 
+        $report = new PdfReport($htmlReport);
+        // Options: Ver mas en https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
+        $report->setOptions( [
+            'no-outline',
+            'viewport-size' => '1280x1024',
+            'page-width' => '21cm',
+            'page-height' => '29.7cm',
+        ]);
 
+        $report->setBinPath(env('WKHTML_PDF_PATH'));
+
+        $ruc = $invoice->getCompany()->getRuc();
+        $company = ModelsCompany::where('ruc', $ruc)->first();
+
+        $params = [
+            'system' => [
+                'logo' => Storage::get($company->logo_path), // Logo de Empresa
+                'hash' => 'qqnr2dN4p/HmaEA/CJuVGo7dv5g=', // Valor Resumen 
+            ],
+            'user' => [
+                'header'     => 'Telf: <b>(01) 123375</b>', // Texto que se ubica debajo de la dirección de empresa
+                'extras'     => [
+                    // Leyendas adicionales
+                    ['name' => 'CONDICION DE PAGO', 'value' => 'Efectivo'     ],
+                    ['name' => 'VENDEDOR'         , 'value' => 'GITHUB SELLER'],
+                ],
+                'footer' => '<p>Nro Resolucion: <b>3232323</b></p>'
+            ]
+        ];
+
+        $pdf = $report->render($invoice, $params);
+
+        Storage::put('invoices/' . $invoice->getName() . '.pdf', $pdf);
     }
 }
