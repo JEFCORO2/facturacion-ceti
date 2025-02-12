@@ -168,9 +168,33 @@ class SunatService{
         $company = ModelsCompany::where('ruc', $ruc)->first();
 
         $params = [
+            'system' => [
+                'logo' => Storage::get($company->logo_path),
+                'hash' => 'qqnr2dN4p/HmaEA/CJuVGo7dv5g', //valor resumen
+            ],
             
+            'user' => [
+                'header' => 'Telf: <b>(01) 123375 </b>',
+                'extras' => [
+                    //Leyendas adicionales
+                    ['name' => 'CONDICION DE PAGO', 'value' => 'Efectivo'],
+                    ['name' => 'vendedor', 'value' => 'GITHUB SELLER'],
+                ],
+                'footer' => '<p>Nro Resolucion: <b>32322323</b></p>'
+            ]
         ];
 
+        return $report->render($invoice, $params);
     }
 
+    public function generatedPdfReport($invoice) {
+        $htmlReport = new HtmlReport();
+
+        $resolver = new DefaultTemplateResolver();
+        $htmlReport->setTemplate($resolver->getTemplate($invoice));
+        
+        
+
+
+    }
 }
