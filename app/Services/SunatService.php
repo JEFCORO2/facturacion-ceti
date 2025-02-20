@@ -174,8 +174,9 @@ class SunatService
         $report->setTemplate($resolver->getTemplate($invoice));
 
         $ruc = $invoice->getCompany()->getRuc();
-        $company = ModelsCompany::where('ruc', $ruc)->first();
 
+        $company = ModelsCompany::where('ruc', $ruc)->first();
+        
         $params = [
             'system' => [
                 'logo' => Storage::get($company->logo_path), // Logo de Empresa
@@ -191,6 +192,8 @@ class SunatService
                 'footer' => '<p>Nro Resolucion: <b>3232323</b></p>'
             ]
         ];
+
+        $response = $report->render($invoice, $params);
 
         return $report->render($invoice, $params);
     }

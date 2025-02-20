@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\Company;
-//use App\Rules\UniqueCompanyRule;
 use Illuminate\Http\Request;
+//use App\Rules\UniqueCompanyRule;
+use App\Rules\UniqueCompanyRule;
+use App\Http\Controllers\Controller;
 
 class CompanyController extends Controller
 {
